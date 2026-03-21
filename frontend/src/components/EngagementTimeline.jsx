@@ -248,7 +248,8 @@ export default function EngagementTimeline({
   endDate, 
   onDateChange,
   selectedParty = 'both',
-  legislator
+  legislator,
+  keyword
 }) {
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -342,6 +343,9 @@ export default function EngagementTimeline({
         if (legislator?.legislator_id) {
           params.legislator = legislator.legislator_id;
         }
+        if (keyword && keyword.trim()) {
+          params.keyword = keyword.trim();
+        }
 
         const queryString = new URLSearchParams();
         Object.entries(params).forEach(([key, value]) => {
@@ -367,7 +371,7 @@ export default function EngagementTimeline({
     };
 
     loadData();
-  }, [startDate, endDate, activeTopics, selectedParty, legislator]);
+  }, [startDate, endDate, activeTopics, selectedParty, legislator, keyword]);
 
   // Use only the activeTopics that exist in the data
   const effectiveTopics = useMemo(() => {

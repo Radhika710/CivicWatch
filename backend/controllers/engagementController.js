@@ -6,7 +6,7 @@ import pool from '../config/database.js';
  */
 export async function getEngagementTimeline(req, res) {
   try {
-    const { start_date, end_date, topics, party, legislator } = req.query;
+    const { start_date, end_date, topics, party, legislator, keyword } = req.query;
 
     // Build date filter
     let dateFilter = '';
@@ -61,6 +61,16 @@ export async function getEngagementTimeline(req, res) {
       params.push(legislator);
       paramIndex++;
     }
+
+    // Build keyword filter
+    let keywordFilter = '';
+    if (keyword && keyword.trim()) {
+      keywordFilter = (dateFilter || topicFilter || partyFilter || legislatorFilter)
+        ? ` AND p.text ILIKE $${paramIndex}`
+        : `WHERE p.text ILIKE $${paramIndex}`;
+      params.push(`%${keyword.trim()}%`);
+      paramIndex++;
+    }
     // Note: If no topics specified, return all topics (frontend can filter client-side if needed)
 
     // Query to get daily engagement per topic and post counts
@@ -80,7 +90,7 @@ export async function getEngagementTimeline(req, res) {
       FROM posts p
       JOIN topics t ON p.topic = t.topic
       JOIN legislators l ON p.lid = l.lid
-      ${dateFilter}${topicFilter}${partyFilter}${legislatorFilter}
+      ${dateFilter}${topicFilter}${partyFilter}${legislatorFilter}${keywordFilter}
       GROUP BY p.created_at, t.topic_label
       HAVING COUNT(p.id) > 0
       ORDER BY p.created_at, t.topic_label

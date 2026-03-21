@@ -573,9 +573,12 @@ export default function TimelineContext({
     if (selectedParty && selectedParty !== 'both') {
       params.append('party', selectedParty);
     }
+    if (keyword && keyword.trim()) {
+      params.append('keyword', keyword.trim());
+    }
     
     return params.toString();
-  }, [startDate, endDate, effectiveTopics, selectedParty]);
+  }, [startDate, endDate, effectiveTopics, selectedParty, keyword]);
 
   // Fetch overview data
   useEffect(() => {

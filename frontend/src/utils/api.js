@@ -10,6 +10,50 @@
 const baseUrl = import.meta.env.BASE_URL || '/';
 export const API_BASE = `${baseUrl}api`.replace('//', '/');
 
+const requestCache = new Map();
+const CACHE_TTL = 60000; // 1 minute TTL
+const MAX_CACHE_SIZE = 100;
+
+
+function getCacheKey(endpoint) {
+  return endpoint;
+}
+
+
+function getCachedResponse(key) {
+  const cached = requestCache.get(key);
+  if (!cached) return null;
+  
+  if (Date.now() - cached.timestamp > CACHE_TTL) {
+    requestCache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+
+function setCachedResponse(key, data) {
+  // Evict oldest entries if cache is full
+  if (requestCache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = requestCache.keys().next().value;
+    requestCache.delete(oldestKey);
+  }
+  
+  requestCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+}
+
+
+export function clearCache() {
+  requestCache.clear();
+}
+
+
+const pendingRequests = new Map();
+
 /**
  * Build query string from params object
  */
@@ -29,28 +73,65 @@ function buildQueryString(params) {
 }
 
 /**
- * Fetch with error handling
+ * Fetch with error handling, caching, and request deduplication
+
  */
 async function fetchAPI(endpoint, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE}${endpoint}`, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+  const cacheKey = getCacheKey(endpoint);
+  const isGetRequest = !options.method || options.method === 'GET';
+  
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API error: ${response.status} - ${errorText}`);
+  if (isGetRequest && !options.skipCache) {
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      return cached;
     }
+    
 
-    return await response.json();
-  } catch (error) {
-    console.error(`API request failed: ${endpoint}`, error);
-    throw error;
+    if (pendingRequests.has(cacheKey)) {
+      return pendingRequests.get(cacheKey);
+    }
   }
+  
+
+  const requestPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      
+      // Cache the response for GET requests
+      if (isGetRequest) {
+        setCachedResponse(cacheKey, data);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error(`API request failed: ${endpoint}`, error);
+      throw error;
+    } finally {
+      // Remove from pending requests
+      pendingRequests.delete(cacheKey);
+    }
+  })();
+  
+  // Track pending request for deduplication
+  if (isGetRequest) {
+    pendingRequests.set(cacheKey, requestPromise);
+  }
+  
+  return requestPromise;
 }
 
 /**
@@ -117,3 +198,49 @@ export async function getAllTopics(params = {}) {
   return fetchAPI(`/topics/${queryString}`);
 }
 
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+export function useDebouncedValue(value, delay = 300) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export function useDebouncedCallback(callback, delay = 300) {
+  const timeoutRef = useRef(null);
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  const debouncedCallback = useCallback((...args) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      callbackRef.current(...args);
+    }, delay);
+  }, [delay]);
+
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  return debouncedCallback;
+}

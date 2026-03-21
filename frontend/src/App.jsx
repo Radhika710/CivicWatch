@@ -119,6 +119,7 @@ export default function App() {
                     onDateChange={handleDateChange}
                     selectedParty={selectedParty}
                     legislator={legislator}
+                    keyword={keyword}
                   />
                 </div>
               </div>

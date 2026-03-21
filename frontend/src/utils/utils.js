@@ -206,4 +206,27 @@ export const formatNumber = (num) => {
     return formatted.endsWith('.0') ? `${Math.round(num / 1000)}K` : `${formatted}K`;
   }
   return num.toString();
-}; 
+};
+
+export function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+
+export function stableStringify(obj) {
+  if (obj === null || obj === undefined) return String(obj);
+  if (typeof obj !== 'object') return JSON.stringify(obj);
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(stableStringify).join(',') + ']';
+  }
+  const keys = Object.keys(obj).sort();
+  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify(obj[k])).join(',') + '}';
+} 

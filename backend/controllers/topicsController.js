@@ -55,7 +55,7 @@ export async function getAllTopics(req, res) {
  */
 export async function getTopicBreakdown(req, res) {
   try {
-    const { topic, start_date, end_date, party, legislator } = req.query;
+    const { topic, start_date, end_date, party, legislator, keyword } = req.query;
 
     if (!topic) {
       return res.status(400).json({ error: 'Topic parameter is required (topic_label)' });
@@ -116,6 +116,13 @@ export async function getTopicBreakdown(req, res) {
       paramIndex++;
     }
 
+    // Add keyword search filter
+    if (keyword && keyword.trim()) {
+      partyQuery += ` AND p.text ILIKE $${paramIndex}`;
+      params.push(`%${keyword.trim()}%`);
+      paramIndex++;
+    }
+
     partyQuery += ` AND l.party IS NOT NULL GROUP BY l.party`;
 
     // Get state breakdown
@@ -155,6 +162,13 @@ export async function getTopicBreakdown(req, res) {
     if (legislator) {
       stateQuery += ` AND p.lid = $${stateParamIndex}`;
       stateParams.push(legislator);
+      stateParamIndex++;
+    }
+
+    // Add keyword search filter
+    if (keyword && keyword.trim()) {
+      stateQuery += ` AND p.text ILIKE $${stateParamIndex}`;
+      stateParams.push(`%${keyword.trim()}%`);
       stateParamIndex++;
     }
 
@@ -198,6 +212,13 @@ export async function getTopicBreakdown(req, res) {
     if (legislator) {
       statePartyQuery += ` AND p.lid = $${statePartyParamIndex}`;
       statePartyParams.push(legislator);
+      statePartyParamIndex++;
+    }
+
+    // Add keyword search filter
+    if (keyword && keyword.trim()) {
+      statePartyQuery += ` AND p.text ILIKE $${statePartyParamIndex}`;
+      statePartyParams.push(`%${keyword.trim()}%`);
       statePartyParamIndex++;
     }
 

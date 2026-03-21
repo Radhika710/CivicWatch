@@ -100,6 +100,8 @@ export default function TopVisualization({
 
   // Load topics data from API
   useEffect(() => {
+    const controller = new AbortController();
+    
     const loadData = async () => {
       if (!activeTopics || activeTopics.length === 0) {
         setLoading(false);
@@ -128,6 +130,9 @@ export default function TopVisualization({
         if (legislator?.legislator_id) {
           params.legislator = legislator.legislator_id;
         }
+        if (keyword && keyword.trim()) {
+          params.keyword = keyword.trim();
+        }
 
         // Get topic breakdowns for all active topics
         const topicBreakdowns = await Promise.all(
@@ -142,7 +147,9 @@ export default function TopVisualization({
                   queryString.append(key, value);
                 }
               });
-              const res = await fetch(`${API_BASE}/topics/breakdown/?${queryString.toString()}`);
+              const res = await fetch(`${API_BASE}/topics/breakdown/?${queryString.toString()}`, {
+                signal: controller.signal
+              });
               if (!res.ok) {
                 console.warn(`Failed to fetch breakdown for topic ${topicLabel}:`, res.status);
                 return null;
@@ -150,11 +157,15 @@ export default function TopVisualization({
               const data = await res.json();
               return data;
             } catch (err) {
+              if (err.name === 'AbortError') return null; // Ignore aborted requests
               console.error(`Error loading breakdown for topic ${topicLabel}:`, err);
               return null;
             }
           })
         );
+
+        // Skip state update if aborted
+        if (controller.signal.aborted) return;
 
         // Filter out nulls and transform to treemap format
         const topics = topicBreakdowns
@@ -194,16 +205,21 @@ export default function TopVisualization({
         setTopicsData(topics);
         setError(null);
       } catch (err) {
+        if (err.name === 'AbortError') return; // Ignore aborted requests
         console.error('Error loading treemap data:', err);
         setError(err.message);
         setTopicsData([]);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     loadData();
-  }, [activeTopics, startDate, endDate, selectedParty, legislator]);
+    
+    return () => controller.abort();
+  }, [activeTopics, startDate, endDate, selectedParty, legislator, keyword]);
 
   // Update dimensions on resize and when container becomes available
   useEffect(() => {

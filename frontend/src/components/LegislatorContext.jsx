@@ -34,6 +34,8 @@ export default function LegislatorContext({
 
   // Load legislator profile data from API
   useEffect(() => {
+    const controller = new AbortController();
+    
     const loadProfile = async () => {
       if (!legislator?.legislator_id) {
         setLoading(false);
@@ -68,24 +70,34 @@ export default function LegislatorContext({
           }
         });
 
-        const res = await fetch(`${API_BASE}/legislators/${legislator.legislator_id}/profile?${queryString.toString()}`);
+        const res = await fetch(`${API_BASE}/legislators/${legislator.legislator_id}/profile?${queryString.toString()}`, {
+          signal: controller.signal
+        });
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(`HTTP error! status: ${res.status} - ${errorText.substring(0, 100)}`);
         }
         const profile = await res.json();
+        
+        if (controller.signal.aborted) return;
+        
         setProfileData(profile);
         setError(null);
       } catch (err) {
+        if (err.name === 'AbortError') return; // Ignore aborted requests
         console.error('Error loading legislator profile:', err);
         setError(err.message);
         setProfileData(null);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     loadProfile();
+    
+    return () => controller.abort();
   }, [legislator?.legislator_id, startDate, endDate, activeTopics]);
 
   // Helper to format chamber display

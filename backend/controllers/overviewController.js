@@ -7,7 +7,7 @@ import pool from '../config/database.js';
  */
 export async function getDefaultOverviewData(req, res) {
   try {
-    const { start_date, end_date, topics, party } = req.query;
+    const { start_date, end_date, topics, party, keyword } = req.query;
 
     // Build base filter
     let baseFilter = '';
@@ -23,6 +23,13 @@ export async function getDefaultOverviewData(req, res) {
     if (end_date) {
       baseFilter += ` AND p.created_at <= $${paramIndex}`;
       params.push(end_date);
+      paramIndex++;
+    }
+
+    // Add keyword search filter
+    if (keyword && keyword.trim()) {
+      baseFilter += ` AND p.text ILIKE $${paramIndex}`;
+      params.push(`%${keyword.trim()}%`);
       paramIndex++;
     }
 

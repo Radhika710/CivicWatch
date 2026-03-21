@@ -119,6 +119,8 @@ export default function Sidebar({
   // Load topics sorted by engagement from API
   // Always order by overall engagement (not filtered by date range) for consistent ordering
   useEffect(() => {
+    const controller = new AbortController();
+    
     const loadData = async () => {
       setTopicsLoading(true);
       setTopicsError('');
@@ -135,12 +137,16 @@ export default function Sidebar({
         params.limit = 500; // Get top 500 topics
 
         const queryString = new URLSearchParams(params).toString();
-        const res = await fetch(`${API_BASE}/engagement/topics/?${queryString}`);
+        const res = await fetch(`${API_BASE}/engagement/topics/?${queryString}`, {
+          signal: controller.signal
+        });
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(`HTTP error! status: ${res.status} - ${errorText.substring(0, 100)}`);
         }
         const topicsArray = await res.json();
+        
+        if (controller.signal.aborted) return;
         
         if (Array.isArray(topicsArray)) {
           // Ensure topics are always sorted by engagement (API should return them sorted, but double-check)
@@ -149,15 +155,20 @@ export default function Sidebar({
           throw new Error('Invalid response format');
         }
       } catch (err) {
+        if (err.name === 'AbortError') return; // Ignore aborted requests
         console.error('Error loading topics in Sidebar:', err);
         setTopicsError(err.message || 'Failed to load topics');
         setTopicsByEngagement([]);
       } finally {
-        setTopicsLoading(false);
+        if (!controller.signal.aborted) {
+          setTopicsLoading(false);
+        }
       }
     };
 
     loadData();
+    
+    return () => controller.abort();
   }, [selectedParty, legislator]); // Removed startDate and endDate from dependencies - topics always ordered by overall engagement
 
   // Unknown topic identifier - always shown at bottom, unselected by default
