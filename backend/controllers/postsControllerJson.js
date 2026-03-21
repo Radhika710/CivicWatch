@@ -6,27 +6,28 @@ export async function getPostsJSON(req, res) {
     if (!legislator) {
       return res.status(400).json({ error: 'legislator_id is required' });
     }
-
-    let query = `
-      SELECT 
-        p.id,
-        p.tweet_id,
-        l.name,
-        l.handle,
-        p.created_at,
-        p.text,
-        l.state,
-        l.chamber,
-        l.party,
-        p.retweet_count,
-        p.like_count,
-        p.count_misinfo,
-        p.tox_toxicity,
-        p.political_score,
-        p.is_political
-      FROM posts p
-      JOIN legislators l ON p.lid = l.lid
-      WHERE l.lid = $1
+  let query = `
+    SELECT 
+    p.id,
+    p.tweet_id,
+    l.name,
+    l.handle,
+    p.created_at,
+    p.text,
+    l.state,
+    l.chamber,
+    l.party,
+    p.retweet_count,
+    p.like_count,
+    p.count_misinfo,
+    p.tox_toxicity,
+    p.political_score,
+    p.is_political,
+    t.topic_label
+FROM posts p
+JOIN legislators l ON p.lid = l.lid
+LEFT JOIN topics t ON p.topic = t.topic
+WHERE l.lid = $1
     `;
     const params = [legislator];
 
@@ -54,7 +55,8 @@ export async function getPostsJSON(req, res) {
       text: row.text,
       engagement: row.retweet_count + row.like_count,
       civility: row.tox_toxicity,
-      credibility: row.political_score
+      credibility: row.political_score,
+      topic: row.topic_label
     }));
 
     res.json({ posts });

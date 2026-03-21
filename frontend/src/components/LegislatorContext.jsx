@@ -574,11 +574,6 @@ export default function LegislatorContext({
           
           {/* Action Button */}
           <div className="pt-4 border-t border-base-300">
-            {/* <button className="btn btn-primary w-full">
-              <FaChartLine className="mr-2" />
-              View Posts ({formatNumber(displayData.metrics?.totalPosts || 0)} total)
-            </button> */}
-
             <button
               className="btn btn-primary w-full"
               onClick={() => setShowPosts(prev => !prev)}
@@ -593,6 +588,8 @@ export default function LegislatorContext({
               sortFilters={sortFilters}
               startDate={startDate}
               endDate={endDate}
+              open={showPosts}
+              onClose={() => setShowPosts(false)}
             />
           )}
 
