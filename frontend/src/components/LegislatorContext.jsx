@@ -506,72 +506,6 @@ export default function LegislatorContext({
         <div className="bg-base-200 rounded-lg p-3">
           <h2 className="text-lg font-semibold text-base-content mb-4">Explore Posts</h2>
           
-          {/* Sort Filters */}
-          <div className="mb-6">
-            <h3 className="font-medium text-base-content mb-3">Sort By</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <button 
-                onClick={() => toggleSort('date')}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200 ${
-                  sortFilters.date !== 'none' 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-base-300 bg-base-100 hover:border-base-400'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <FaChartLine className="text-blue-500" size={16} />
-                  <span className="text-sm font-medium">Date</span>
-                </div>
-                {getSortIcon('date')}
-              </button>
-
-              <button 
-                onClick={() => toggleSort('engagement')}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200 ${
-                  sortFilters.engagement !== 'none' 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-base-300 bg-base-100 hover:border-base-400'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <FaUsers className="text-green-500" size={16} />
-                  <span className="text-sm font-medium">Engagement</span>
-                </div>
-                {getSortIcon('engagement')}
-              </button>
-
-              <button 
-                onClick={() => toggleSort('civility')}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200 ${
-                  sortFilters.civility !== 'none' 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-base-300 bg-base-100 hover:border-base-400'
-                }`}
-              >
-                <div className="flex items-center justify-between space-x-2">
-                  <FaShieldAlt className="text-red-500" size={16} />
-                  <span className="text-sm font-medium">Civility</span>
-                </div>
-                {getSortIcon('civility')}
-              </button>
-
-              <button 
-                onClick={() => toggleSort('credibility')}
-                className={`flex items-center justify-between px-4 py-3 rounded-lg border transition-all duration-200 ${
-                  sortFilters.credibility !== 'none' 
-                    ? 'border-primary bg-primary/10' 
-                    : 'border-base-300 bg-base-100 hover:border-base-400'
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  <FaStar className="text-orange-500" size={16} />
-                  <span className="text-sm font-medium">Credibility</span>
-                </div>
-                {getSortIcon('credibility')}
-              </button>
-            </div>
-          </div>
-          
           {/* Action Button */}
           <div className="pt-4 border-t border-base-300">
             <button
@@ -580,7 +514,7 @@ export default function LegislatorContext({
               disabled={!legislator} // optional: only clickable if legislator selected
             >
               <FaChartLine className="mr-2" />
-              {showPosts ? 'Hide Posts' : `View Posts (${formatNumber(displayData.metrics?.totalPosts || 0)} total)`}
+              {showPosts ? 'Hide Posts' : `View Posts`}
             </button>
             {showPosts && legislator && (
             <LegislatorPosts
